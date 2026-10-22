@@ -20,6 +20,7 @@ public class AudioPlayer {
 	public static int LEVEL_3 = 3;
 	public static int LEVEL_4 = 4;
 	public static int LEVEL_5 = 5;
+	public static int LEVEL_6 = 6;
 
 	public static int DIE = 0;
 	public static int JUMP = 1;
@@ -42,7 +43,7 @@ public class AudioPlayer {
 	}
 
 	private void loadSongs() {
-		String[] names = { "menu", "level1", "level2", "level3", "level4", "level5" };
+		String[] names = { "menu", "level1", "level2", "level3", "level4", "level5", "level6" };
 		songs = new Clip[names.length];
 		for (int i = 0; i < songs.length; i++)
 			songs[i] = getClip(names[i]);
@@ -104,6 +105,9 @@ public class AudioPlayer {
 			break;
 		case 4:
 			playSong(LEVEL_5);
+			break;
+		case 5:
+			playSong(LEVEL_6);
 			break;
 		default:
 			playSong(LEVEL_1);

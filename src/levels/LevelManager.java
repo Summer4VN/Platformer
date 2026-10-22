@@ -36,6 +36,7 @@ public class LevelManager {
 		game.getPlaying().getEnemyManager().loadEnemies(newLevel);
 		game.getPlaying().getPlayer().loadLvlData(newLevel.getLevelData());
 		game.getPlaying().setMaxLvlOffset(newLevel.getLvlOffset());
+		game.getPlaying().setMaxLvlOffsetY(newLevel.getLvlOffsetY());
 		game.getPlaying().getObjectManager().loadObjects(newLevel);
 	}
 
@@ -55,12 +56,12 @@ public class LevelManager {
 			}
 	}
 
-	public void draw(Graphics g, int lvlOffset) {
-		for (int j = 0; j < Game.TILES_IN_HEIGHT; j++)
+	public void draw(Graphics g, int lvlOffset, int yLvlOffset) {
+		for (int j = 0; j < levels.get(lvlIndex).getLevelData().length; j++)
 			for (int i = 0; i < levels.get(lvlIndex).getLevelData()[0].length; i++) {
 				int index = levels.get(lvlIndex).getSpriteIndex(i, j);
 				int x = Game.TILES_SIZE * i - lvlOffset;
-				int y = Game.TILES_SIZE * j;
+				int y = Game.TILES_SIZE * j - yLvlOffset;
 				if (index == 48)
 					g.drawImage(waterSprite[aniIndex], x, y, Game.TILES_SIZE, Game.TILES_SIZE, null);
 				else if (index == 49)
@@ -68,6 +69,10 @@ public class LevelManager {
 				else
 					g.drawImage(levelSprite[index], x, y, Game.TILES_SIZE, Game.TILES_SIZE, null);
 			}
+	}
+
+	public void draw(Graphics g, int lvlOffset) {
+		draw(g, lvlOffset, 0);
 	}
 
 	public void update() {

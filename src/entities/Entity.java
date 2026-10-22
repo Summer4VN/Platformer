@@ -62,14 +62,24 @@ public abstract class Entity {
 			hitbox.x += xSpeed * speedMulti;
 	}
 
-	protected void drawAttackBox(Graphics g, int xLvlOffset) {
+	protected void drawAttackBox(Graphics g, int xLvlOffset, int yLvlOffset) {
 		g.setColor(Color.red);
-		g.drawRect((int) (attackBox.x - xLvlOffset), (int) attackBox.y, (int) attackBox.width, (int) attackBox.height);
+		g.drawRect((int) (attackBox.x - xLvlOffset), (int) (attackBox.y - yLvlOffset), (int) attackBox.width,
+				(int) attackBox.height);
+	}
+
+	protected void drawAttackBox(Graphics g, int xLvlOffset) {
+		drawAttackBox(g, xLvlOffset, 0);
+	}
+
+	protected void drawHitbox(Graphics g, int xLvlOffset, int yLvlOffset) {
+		g.setColor(Color.BLUE);
+		g.drawRect((int) (hitbox.x - xLvlOffset), (int) (hitbox.y - yLvlOffset), (int) hitbox.width,
+				(int) hitbox.height);
 	}
 
 	protected void drawHitbox(Graphics g, int xLvlOffset) {
-		g.setColor(Color.BLUE);
-		g.drawRect((int) hitbox.x - xLvlOffset, (int) hitbox.y, (int) hitbox.width, (int) hitbox.height);
+		drawHitbox(g, xLvlOffset, 0);
 	}
 
 	protected void initHitbox(int width, int height) {
@@ -86,6 +96,14 @@ public abstract class Entity {
 
 	public int getAniIndex() {
 		return aniIndex;
+	}
+
+	public int getCurrentHealth() {
+		return currentHealth;
+	}
+
+	public int getMaxHealth() {
+		return maxHealth;
 	}
 
 	protected void newState(int state) {

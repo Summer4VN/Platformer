@@ -28,6 +28,8 @@ public class Player extends Entity {
     // Jumping / Gravity
     private float jumpSpeed = -2.25f * Game.SCALE;
     private float fallSpeedAfterCollision = 0.5f * Game.SCALE;
+    private boolean godMode = false;
+    private boolean killRewardActive = false;
 
     // StatusBarUI
     private BufferedImage statusBarImg;
@@ -36,6 +38,9 @@ public class Player extends Entity {
     private int statusBarHeight = (int) (58 * Game.SCALE);
     private int statusBarX = (int) (10 * Game.SCALE);
     private int statusBarY = (int) (10 * Game.SCALE);
+    private int statusBarX2 = (int) (60 * Game.SCALE);
+    private int statusBarY2 = (int) (60 * Game.SCALE);
+    
 
     private int healthBarWidth = (int) (150 * Game.SCALE);
     private int healthBarHeight = (int) (4 * Game.SCALE);
@@ -71,7 +76,7 @@ public class Player extends Entity {
         this.playerCharacter = playerCharacter;
         this.playing = playing;
         this.state = IDLE;
-        this.maxHealth = 100;
+        this.maxHealth = playerCharacter.maxHealth;
         this.currentHealth = maxHealth;
         this.walkSpeed = Game.SCALE * 1.0f;
         animations = LoadSave.loadAnimations(playerCharacter);
@@ -160,6 +165,8 @@ public class Player extends Entity {
     }
 
     private void checkInsideWater() {
+        if (godMode)
+            return;
         if (IsEntityInWater(hitbox, playing.getLevelManager().getCurrentLevel().getLevelData()))
             currentHealth = 0;
     }
@@ -222,11 +229,15 @@ public class Player extends Entity {
         }
     }
 
-    public void render(Graphics g, int lvlOffset) {
-        g.drawImage(animations[playerCharacter.getRowIndex(state)][aniIndex], (int) (hitbox.x - playerCharacter.xDrawOffset) - lvlOffset + flipX, (int) (hitbox.y - playerCharacter.yDrawOffset + (int) (pushDrawOffset)), width * flipW, height, null);
-        drawHitbox(g, lvlOffset);
-//		drawAttackBox(g, lvlOffset);
+    public void render(Graphics g, int lvlOffset, int yLvlOffset) {
+        g.drawImage(animations[playerCharacter.getRowIndex(state)][aniIndex], (int) (hitbox.x - playerCharacter.xDrawOffset) - lvlOffset + flipX, (int) (hitbox.y - playerCharacter.yDrawOffset + (int) (pushDrawOffset)) - yLvlOffset, width * flipW, height, null);
+        drawHitbox(g, lvlOffset, yLvlOffset);
+//		drawAttackBox(g, lvlOffset, yLvlOffset);
         drawUI(g);
+    }
+
+    public void render(Graphics g, int lvlOffset) {
+        render(g, lvlOffset, 0);
     }
 
     private void drawUI(Graphics g) {
@@ -240,8 +251,10 @@ public class Player extends Entity {
         // Power Bar
         g.setColor(Color.yellow);
         g.fillRect(powerBarXStart + statusBarX, powerBarYStart + statusBarY, powerWidth, powerBarHeight);
+
     }
 
+    
     private void updateAnimationTick() {
         aniTick++;
         if (aniTick >= ANI_SPEED) {
@@ -388,6 +401,8 @@ public class Player extends Entity {
 
     public void changeHealth(int value) {
         if (value < 0) {
+            if (godMode)
+                return;
             if (state == HIT)
                 return;
             else
@@ -399,6 +414,8 @@ public class Player extends Entity {
     }
 
     public void changeHealth(int value, Enemy e) {
+        if (godMode && value < 0)
+            return;
         if (state == HIT)
             return;
         changeHealth(value);
@@ -412,12 +429,60 @@ public class Player extends Entity {
     }
 
     public void kill() {
+        if (godMode)
+            return;
         currentHealth = 0;
+    }
+
+    public void toggleGodMode() {
+        godMode = !godMode;
+        if (godMode) {
+            currentHealth = maxHealth;
+            if (state == DEAD) {
+                state = IDLE;
+                playing.setPlayerDying(false);
+            }
+        }
+    }
+
+    public boolean isGodMode() {
+        return godMode;
     }
 
     public void changePower(int value) {
         powerValue += value;
         powerValue = Math.max(Math.min(powerValue, powerMaxValue), 0);
+    }
+
+    public void enemyKilledReward() {
+        if (!killRewardActive)
+            return;
+        if (currentHealth <= 0)
+            return;
+        int manaHeal = (int) Math.round(powerMaxValue * 0.30f);
+        int healthHeal = (int) Math.round(maxHealth * 0.15f);
+        changePower(manaHeal);
+        changeHealth(healthHeal);
+    }
+
+    public void toggleKillReward() {
+        killRewardActive = !killRewardActive;
+    }
+
+    public boolean isKillRewardActive() {
+        return killRewardActive;
+    }
+
+    public void setKillRewardActive(boolean active) {
+        this.killRewardActive = active;
+    }
+
+    public int getPowerValue() {
+        return powerValue;
+    }
+
+    public int getPowerMaxValue() {
+        return powerMaxValue;
     }
 
 
@@ -495,6 +560,10 @@ public class Player extends Entity {
             changePower(-60);
         }
 
+    }
+
+    public int getAttackDamage() {
+        return playerCharacter.attackDamage;
     }
 
 }

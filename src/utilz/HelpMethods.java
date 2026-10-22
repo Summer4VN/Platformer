@@ -18,9 +18,10 @@ public class HelpMethods {
 
 	private static boolean IsSolid(float x, float y, int[][] lvlData) {
 		int maxWidth = lvlData[0].length * Game.TILES_SIZE;
+		int maxHeight = lvlData.length * Game.TILES_SIZE;
 		if (x < 0 || x >= maxWidth)
 			return true;
-		if (y < 0 || y >= Game.GAME_HEIGHT)
+		if (y < 0 || y >= maxHeight)
 			return true;
 		float xIndex = x / Game.TILES_SIZE;
 		float yIndex = y / Game.TILES_SIZE;
@@ -44,10 +45,14 @@ public class HelpMethods {
 	private static int GetTileValue(float xPos, float yPos, int[][] lvlData) {
 		int xCord = (int) (xPos / Game.TILES_SIZE);
 		int yCord = (int) (yPos / Game.TILES_SIZE);
+		if (yCord < 0 || yCord >= lvlData.length || xCord < 0 || xCord >= lvlData[0].length)
+			return 0;
 		return lvlData[yCord][xCord];
 	}
 
 	public static boolean IsTileSolid(int xTile, int yTile, int[][] lvlData) {
+		if (yTile < 0 || yTile >= lvlData.length || xTile < 0 || xTile >= lvlData[0].length)
+			return true;
 		int value = lvlData[yTile][xTile];
 
 		switch (value) {

@@ -28,8 +28,6 @@ public class State {
 		case MENU -> game.getAudioPlayer().playSong(AudioPlayer.MENU_1);
 		case PLAYING -> game.getAudioPlayer().setLevelSong(game.getPlaying().getLevelManager().getLevelIndex());
 		}
-
 		Gamestate.state = state;
 	}
-
 }

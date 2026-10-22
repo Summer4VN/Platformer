@@ -9,6 +9,8 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import java.util.ArrayList;
+
 import javax.imageio.ImageIO;
 
 public class LoadSave {
@@ -51,17 +53,14 @@ public class LoadSave {
     public static final String WATER_BOTTOM = "water.png";
     public static final String SHIP = "ship.png";
 
-
     public static BufferedImage[][] loadAnimations(PlayerCharacter pc) {
         BufferedImage img = LoadSave.GetSpriteAtlas(pc.playerAtlas);
         BufferedImage[][] animations = new BufferedImage[pc.rowA][pc.colA];
         for (int j = 0; j < animations.length; j++)
             for (int i = 0; i < animations[j].length; i++)
                 animations[j][i] = img.getSubimage(i * pc.spriteW, j * pc.spriteH, pc.spriteW, pc.spriteH);
-
         return animations;
     }
-
 
     public static BufferedImage GetSpriteAtlas(String fileName) {
         BufferedImage img = null;
@@ -94,14 +93,22 @@ public class LoadSave {
             e.printStackTrace();
         }
 
-        File[] files = file.listFiles();
-        File[] filesSorted = new File[files.length];
+        File[] allFiles = file.listFiles();
+        ArrayList<File> validLevelFiles = new ArrayList<>();
+        if (allFiles != null) {
+            for (File f : allFiles) {
+                if (f.getName().matches("\\d+\\.png")) {
+                    validLevelFiles.add(f);
+                }
+            }
+        }
+
+        File[] filesSorted = new File[validLevelFiles.size()];
 
         for (int i = 0; i < filesSorted.length; i++)
-            for (int j = 0; j < files.length; j++) {
-                if (files[j].getName().equals((i + 1) + ".png"))
-                    filesSorted[i] = files[j];
-
+            for (File f : validLevelFiles) {
+                if (f.getName().equals((i + 1) + ".png"))
+                    filesSorted[i] = f;
             }
 
         BufferedImage[] imgs = new BufferedImage[filesSorted.length];

@@ -4,6 +4,8 @@ import java.awt.Graphics;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import entities.Enemy;
 import entities.Player;
@@ -23,9 +25,9 @@ public class ObjectManager {
 	private BufferedImage[] cannonImgs, grassImgs;
 	private BufferedImage[][] treeImgs;
 	private BufferedImage spikeImg, cannonBallImg;
-	private ArrayList<Potion> potions;
-	private ArrayList<GameContainer> containers;
-	private ArrayList<Projectile> projectiles = new ArrayList<>();
+	private List<Potion> potions = new CopyOnWriteArrayList<>();
+	private List<GameContainer> containers = new CopyOnWriteArrayList<>();
+	private List<Projectile> projectiles = new CopyOnWriteArrayList<>();
 
 	private Level currentLevel;
 
@@ -80,8 +82,8 @@ public class ObjectManager {
 
 	public void loadObjects(Level newLevel) {
 		currentLevel = newLevel;
-		potions = new ArrayList<>(newLevel.getPotions());
-		containers = new ArrayList<>(newLevel.getContainers());
+		potions = new CopyOnWriteArrayList<>(newLevel.getPotions());
+		containers = new CopyOnWriteArrayList<>(newLevel.getContainers());
 		projectiles.clear();
 	}
 
@@ -194,38 +196,45 @@ public class ObjectManager {
 		projectiles.add(new Projectile((int) c.getHitbox().x, (int) c.getHitbox().y, dir));
 	}
 
+	public void draw(Graphics g, int xLvlOffset, int yLvlOffset) {
+		drawPotions(g, xLvlOffset, yLvlOffset);
+		drawContainers(g, xLvlOffset, yLvlOffset);
+		drawTraps(g, xLvlOffset, yLvlOffset);
+		drawCannons(g, xLvlOffset, yLvlOffset);
+		drawProjectiles(g, xLvlOffset, yLvlOffset);
+		drawGrass(g, xLvlOffset, yLvlOffset);
+	}
+
 	public void draw(Graphics g, int xLvlOffset) {
-		drawPotions(g, xLvlOffset);
-		drawContainers(g, xLvlOffset);
-		drawTraps(g, xLvlOffset);
-		drawCannons(g, xLvlOffset);
-		drawProjectiles(g, xLvlOffset);
-		drawGrass(g, xLvlOffset);
+		draw(g, xLvlOffset, 0);
 	}
 
-	private void drawGrass(Graphics g, int xLvlOffset) {
+	private void drawGrass(Graphics g, int xLvlOffset, int yLvlOffset) {
 		for (Grass grass : currentLevel.getGrass())
-			g.drawImage(grassImgs[grass.getType()], grass.getX() - xLvlOffset, grass.getY(), (int) (32 * Game.SCALE), (int) (32 * Game.SCALE), null);
+			g.drawImage(grassImgs[grass.getType()], grass.getX() - xLvlOffset, grass.getY() - yLvlOffset, (int) (32 * Game.SCALE), (int) (32 * Game.SCALE), null);
 	}
 
-	public void drawBackgroundTrees(Graphics g, int xLvlOffset) {
+	public void drawBackgroundTrees(Graphics g, int xLvlOffset, int yLvlOffset) {
 		for (BackgroundTree bt : currentLevel.getTrees()) {
-
 			int type = bt.getType();
 			if (type == 9)
 				type = 8;
-			g.drawImage(treeImgs[type - 7][bt.getAniIndex()], bt.getX() - xLvlOffset + GetTreeOffsetX(bt.getType()), (int) (bt.getY() + GetTreeOffsetY(bt.getType())), GetTreeWidth(bt.getType()),
+			g.drawImage(treeImgs[type - 7][bt.getAniIndex()], bt.getX() - xLvlOffset + GetTreeOffsetX(bt.getType()), (int) (bt.getY() + GetTreeOffsetY(bt.getType()) - yLvlOffset), GetTreeWidth(bt.getType()),
 					GetTreeHeight(bt.getType()), null);
 		}
 	}
 
-	private void drawProjectiles(Graphics g, int xLvlOffset) {
-		for (Projectile p : projectiles)
-			if (p.isActive())
-				g.drawImage(cannonBallImg, (int) (p.getHitbox().x - xLvlOffset), (int) (p.getHitbox().y), CANNON_BALL_WIDTH, CANNON_BALL_HEIGHT, null);
+	public void drawBackgroundTrees(Graphics g, int xLvlOffset) {
+		drawBackgroundTrees(g, xLvlOffset, 0);
 	}
 
-	private void drawCannons(Graphics g, int xLvlOffset) {
+	private void drawProjectiles(Graphics g, int xLvlOffset, int yLvlOffset) {
+		for (Projectile p : projectiles)
+			if (p.isActive())
+				g.drawImage(cannonBallImg, (int) (p.getHitbox().x - xLvlOffset), (int) (p.getHitbox().y - yLvlOffset), CANNON_BALL_WIDTH, CANNON_BALL_HEIGHT, null);
+	}
+
+	private void drawCannons(Graphics g, int xLvlOffset, int yLvlOffset) {
 		for (Cannon c : currentLevel.getCannons()) {
 			int x = (int) (c.getHitbox().x - xLvlOffset);
 			int width = CANNON_WIDTH;
@@ -234,34 +243,34 @@ public class ObjectManager {
 				x += width;
 				width *= -1;
 			}
-			g.drawImage(cannonImgs[c.getAniIndex()], x, (int) (c.getHitbox().y), width, CANNON_HEIGHT, null);
+			g.drawImage(cannonImgs[c.getAniIndex()], x, (int) (c.getHitbox().y - yLvlOffset), width, CANNON_HEIGHT, null);
 		}
 	}
 
-	private void drawTraps(Graphics g, int xLvlOffset) {
+	private void drawTraps(Graphics g, int xLvlOffset, int yLvlOffset) {
 		for (Spike s : currentLevel.getSpikes())
-			g.drawImage(spikeImg, (int) (s.getHitbox().x - xLvlOffset), (int) (s.getHitbox().y - s.getyDrawOffset()), SPIKE_WIDTH, SPIKE_HEIGHT, null);
+			g.drawImage(spikeImg, (int) (s.getHitbox().x - xLvlOffset), (int) (s.getHitbox().y - s.getyDrawOffset() - yLvlOffset), SPIKE_WIDTH, SPIKE_HEIGHT, null);
 
 	}
 
-	private void drawContainers(Graphics g, int xLvlOffset) {
+	private void drawContainers(Graphics g, int xLvlOffset, int yLvlOffset) {
 		for (GameContainer gc : containers)
 			if (gc.isActive()) {
 				int type = 0;
 				if (gc.getObjType() == BARREL)
 					type = 1;
-				g.drawImage(containerImgs[type][gc.getAniIndex()], (int) (gc.getHitbox().x - gc.getxDrawOffset() - xLvlOffset), (int) (gc.getHitbox().y - gc.getyDrawOffset()), CONTAINER_WIDTH,
+				g.drawImage(containerImgs[type][gc.getAniIndex()], (int) (gc.getHitbox().x - gc.getxDrawOffset() - xLvlOffset), (int) (gc.getHitbox().y - gc.getyDrawOffset() - yLvlOffset), CONTAINER_WIDTH,
 						CONTAINER_HEIGHT, null);
 			}
 	}
 
-	private void drawPotions(Graphics g, int xLvlOffset) {
+	private void drawPotions(Graphics g, int xLvlOffset, int yLvlOffset) {
 		for (Potion p : potions)
 			if (p.isActive()) {
 				int type = 0;
 				if (p.getObjType() == RED_POTION)
 					type = 1;
-				g.drawImage(potionImgs[type][p.getAniIndex()], (int) (p.getHitbox().x - p.getxDrawOffset() - xLvlOffset), (int) (p.getHitbox().y - p.getyDrawOffset()), POTION_WIDTH, POTION_HEIGHT,
+				g.drawImage(potionImgs[type][p.getAniIndex()], (int) (p.getHitbox().x - p.getxDrawOffset() - xLvlOffset), (int) (p.getHitbox().y - p.getyDrawOffset() - yLvlOffset), POTION_WIDTH, POTION_HEIGHT,
 						null);
 			}
 	}

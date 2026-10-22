@@ -8,6 +8,8 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import entities.EnemyManager;
 import entities.Player;
@@ -45,9 +47,14 @@ public class Playing extends State implements Statemethods {
     private int rightBorder = (int) (0.75 * Game.GAME_WIDTH);
     private int maxLvlOffsetX;
 
+    private int yLvlOffset;
+    private int topBorder = (int) (0.35 * Game.GAME_HEIGHT);
+    private int bottomBorder = (int) (0.65 * Game.GAME_HEIGHT);
+    private int maxLvlOffsetY;
+
     private BufferedImage backgroundImg, bigCloud, smallCloud, shipImgs[];
     private BufferedImage[] questionImgs, exclamationImgs;
-    private ArrayList<DialogueEffect> dialogEffects = new ArrayList<>();
+    private List<DialogueEffect> dialogEffects = new CopyOnWriteArrayList<>();
 
     private int[] smallCloudsPos;
     private Random rnd = new Random();
@@ -58,6 +65,7 @@ public class Playing extends State implements Statemethods {
     private boolean playerDying;
     private boolean drawRain;
     private int playTimeTicks = 0;
+    private boolean cursorForcedVisible = false;
 
     // Ship will be decided to drawn here. It's just a cool addition to the game
     // for the first level. Hinting on that the player arrived with the boat.
@@ -125,11 +133,29 @@ public class Playing extends State implements Statemethods {
     }
 
     public void loadNextLevel() {
-        levelManager.setLevelIndex(levelManager.getLevelIndex() + 1);
+        switchLevel(levelManager.getLevelIndex() + 1);
+    }
+
+    public void previousLevel() {
+        switchLevel(levelManager.getLevelIndex() - 1);
+    }
+
+    public void switchLevel(int newLvlIndex) {
+        int amount = levelManager.getAmountOfLevels();
+        if (amount <= 0)
+            return;
+
+        newLvlIndex = (newLvlIndex % amount + amount) % amount;
+
+        levelManager.setLevelIndex(newLvlIndex);
         levelManager.loadNextLevel();
         player.setSpawn(levelManager.getCurrentLevel().getPlayerSpawn());
+        xLvlOffset = 0;
+        yLvlOffset = 0;
+        resetGameCompleted();
         resetAll();
-        drawShip = false;
+        drawShip = (newLvlIndex == 0);
+        game.getAudioPlayer().setLevelSong(newLvlIndex);
     }
 
     private void loadStartLevel() {
@@ -139,6 +165,7 @@ public class Playing extends State implements Statemethods {
 
     private void calcLvlOffset() {
         maxLvlOffsetX = levelManager.getCurrentLevel().getLvlOffset();
+        maxLvlOffsetY = levelManager.getCurrentLevel().getLvlOffsetY();
     }
 
     private void initClasses() {
@@ -220,14 +247,14 @@ public class Playing extends State implements Statemethods {
                 de.update();
     }
 
-    private void drawDialogue(Graphics g, int xLvlOffset) {
+    private void drawDialogue(Graphics g, int xLvlOffset, int yLvlOffset) {
         for (DialogueEffect de : dialogEffects)
             if (de.isActive()) {
                 if (de.getType() == QUESTION)
-                    g.drawImage(questionImgs[de.getAniIndex()], de.getX() - xLvlOffset, de.getY(), DIALOGUE_WIDTH,
+                    g.drawImage(questionImgs[de.getAniIndex()], de.getX() - xLvlOffset, de.getY() - yLvlOffset, DIALOGUE_WIDTH,
                             DIALOGUE_HEIGHT, null);
                 else
-                    g.drawImage(exclamationImgs[de.getAniIndex()], de.getX() - xLvlOffset, de.getY(), DIALOGUE_WIDTH,
+                    g.drawImage(exclamationImgs[de.getAniIndex()], de.getX() - xLvlOffset, de.getY() - yLvlOffset, DIALOGUE_WIDTH,
                             DIALOGUE_HEIGHT, null);
             }
     }
@@ -253,6 +280,16 @@ public class Playing extends State implements Statemethods {
             xLvlOffset += diff - leftBorder;
 
         xLvlOffset = Math.max(Math.min(xLvlOffset, maxLvlOffsetX), 0);
+
+        int playerY = (int) player.getHitbox().y;
+        int diffY = playerY - yLvlOffset;
+
+        if (diffY > bottomBorder)
+            yLvlOffset += diffY - bottomBorder;
+        else if (diffY < topBorder)
+            yLvlOffset += diffY - topBorder;
+
+        yLvlOffset = Math.max(Math.min(yLvlOffset, maxLvlOffsetY), 0);
     }
 
     @Override
@@ -265,15 +302,15 @@ public class Playing extends State implements Statemethods {
 
         if (drawShip)
             g.drawImage(shipImgs[shipAni], (int) (100 * Game.SCALE) - xLvlOffset,
-                    (int) ((288 * Game.SCALE) + shipHeightDelta), (int) (78 * Game.SCALE), (int) (72 * Game.SCALE),
+                    (int) ((288 * Game.SCALE) + shipHeightDelta) - yLvlOffset, (int) (78 * Game.SCALE), (int) (72 * Game.SCALE),
                     null);
 
-        levelManager.draw(g, xLvlOffset);
-        objectManager.draw(g, xLvlOffset);
-        enemyManager.draw(g, xLvlOffset);
-        player.render(g, xLvlOffset);
-        objectManager.drawBackgroundTrees(g, xLvlOffset);
-        drawDialogue(g, xLvlOffset);
+        levelManager.draw(g, xLvlOffset, yLvlOffset);
+        objectManager.draw(g, xLvlOffset, yLvlOffset);
+        enemyManager.draw(g, xLvlOffset, yLvlOffset);
+        player.render(g, xLvlOffset, yLvlOffset);
+        objectManager.drawBackgroundTrees(g, xLvlOffset, yLvlOffset);
+        drawDialogue(g, xLvlOffset, yLvlOffset);
         drawHUD(g);
 
         if (paused) {
@@ -327,6 +364,26 @@ public class Playing extends State implements Statemethods {
         g.drawString(levelTxt, xOffset1, yOffset1);
         g.drawString(timeTxt, xOffset2, yOffset2);
         g.drawString(killsTxt, xOffset3, yOffset3);
+
+        int yOffsetExtra = (int) (85 * Game.SCALE);
+        if (player.isGodMode()) {
+            String godTxt = "GOD MODE: BẤT TỬ [F6]";
+            int xOffsetGod = Game.GAME_WIDTH - g.getFontMetrics().stringWidth(godTxt) - paddingRight;
+            g.setColor(Color.BLACK);
+            g.drawString(godTxt, xOffsetGod + 1, yOffsetExtra + 1);
+            g.setColor(new Color(255, 215, 0)); // Vàng Gold
+            g.drawString(godTxt, xOffsetGod, yOffsetExtra);
+            yOffsetExtra += (int) (20 * Game.SCALE);
+        }
+
+        if (player.isKillRewardActive()) {
+            String rewardTxt = "HỒI PHỤC HẠ QUÁI: BẬT [F5]";
+            int xOffsetReward = Game.GAME_WIDTH - g.getFontMetrics().stringWidth(rewardTxt) - paddingRight;
+            g.setColor(Color.BLACK);
+            g.drawString(rewardTxt, xOffsetReward + 1, yOffsetExtra + 1);
+            g.setColor(new Color(50, 205, 50)); // Lime Green
+            g.drawString(rewardTxt, xOffsetReward, yOffsetExtra);
+        }
     }
 
     public void setGameCompleted() {
@@ -344,6 +401,7 @@ public class Playing extends State implements Statemethods {
         playerDying = false;
         drawRain = false;
         playTimeTicks = 0;
+        cursorForcedVisible = false;
 
         setDrawRainBoolean();
 
@@ -386,6 +444,24 @@ public class Playing extends State implements Statemethods {
 
     @Override
     public void keyPressed(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_F1:
+                previousLevel();
+                return;
+            case KeyEvent.VK_F2:
+                loadNextLevel();
+                return;
+            case KeyEvent.VK_F5:
+                player.toggleKillReward();
+                return;
+            case KeyEvent.VK_F6:
+                player.toggleGodMode();
+                return;
+            case KeyEvent.VK_ENTER:
+                cursorForcedVisible = !cursorForcedVisible;
+                return;
+        }
+
         if (!gameOver && !gameCompleted && !lvlCompleted)
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_A:
@@ -394,6 +470,7 @@ public class Playing extends State implements Statemethods {
                 case KeyEvent.VK_D:
                     player.setRight(true);
                     break;
+                case KeyEvent.VK_W:
                 case KeyEvent.VK_SPACE:
                     player.setJump(true);
                     break;
@@ -419,6 +496,7 @@ public class Playing extends State implements Statemethods {
                 case KeyEvent.VK_D:
                     player.setRight(false);
                     break;
+                case KeyEvent.VK_W:
                 case KeyEvent.VK_SPACE:
                     player.setJump(false);
                     break;
@@ -490,6 +568,10 @@ public class Playing extends State implements Statemethods {
         this.maxLvlOffsetX = lvlOffset;
     }
 
+    public void setMaxLvlOffsetY(int lvlOffsetY) {
+        this.maxLvlOffsetY = lvlOffsetY;
+    }
+
     public void unpauseGame() {
         paused = false;
     }
@@ -519,7 +601,15 @@ public class Playing extends State implements Statemethods {
     }
 
     public boolean shouldShowCursor() {
-        return paused || gameOver || lvlCompleted || gameCompleted;
+        return paused || gameOver || lvlCompleted || gameCompleted || cursorForcedVisible;
+    }
+
+    public void setCursorForcedVisible(boolean cursorForcedVisible) {
+        this.cursorForcedVisible = cursorForcedVisible;
+    }
+
+    public boolean isCursorForcedVisible() {
+        return cursorForcedVisible;
     }
 
 }

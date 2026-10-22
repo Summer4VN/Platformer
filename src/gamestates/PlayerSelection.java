@@ -88,6 +88,64 @@ public class PlayerSelection extends State implements Statemethods {
         else if (actualIndex >= characterAnimations.length)
             actualIndex = 0;
         characterAnimations[actualIndex].draw(g, x, y, isCenter);
+        drawStats(g, characterAnimations[actualIndex].getPc(), x, y, isCenter);
+    }
+
+    private void drawStats(Graphics g, PlayerCharacter pc, int x, int y, boolean isCenter) {
+        Graphics2D g2d = (Graphics2D) g;
+        Object prevAA = g2d.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        int fontSize = isCenter ? (int) (12 * Game.SCALE) : (int) (10 * Game.SCALE);
+        Font font = new Font("Arial", Font.BOLD, fontSize);
+        g2d.setFont(font);
+        FontMetrics fm = g2d.getFontMetrics();
+
+        String hpText = "Máu tối đa: " + pc.getMaxHealth();
+        String atkText = "Sức tấn công: " + pc.getAttackDamage();
+
+        int w1 = fm.stringWidth(hpText);
+        int w2 = fm.stringWidth(atkText);
+        int boxW = Math.max(w1, w2) + (int) (14 * Game.SCALE);
+        int lineHeight = fm.getHeight();
+        int boxH = lineHeight * 2 + (int) (8 * Game.SCALE);
+
+        int boxX = x - boxW / 2;
+        int boxY = isCenter ? y + (int) (110 * Game.SCALE / 2f) : y + (int) (78 * Game.SCALE / 2f);
+
+        // Nền khung thông số
+        g2d.setColor(new Color(0, 0, 0, 185));
+        g2d.fillRoundRect(boxX, boxY, boxW, boxH, (int) (6 * Game.SCALE), (int) (6 * Game.SCALE));
+
+        // Viền khung
+        if (isCenter) {
+            g2d.setColor(new Color(255, 215, 0, 220));
+            g2d.setStroke(new BasicStroke(2f));
+        } else {
+            g2d.setColor(new Color(220, 220, 220, 140));
+            g2d.setStroke(new BasicStroke(1.5f));
+        }
+        g2d.drawRoundRect(boxX, boxY, boxW, boxH, (int) (6 * Game.SCALE), (int) (6 * Game.SCALE));
+
+        int textY1 = boxY + (int) (4 * Game.SCALE) + fm.getAscent();
+        int textY2 = textY1 + lineHeight;
+
+        // Vẽ thông số máu tối đa (màu đỏ cam / coral nổi bật)
+        int textX1 = x - w1 / 2;
+        g2d.setColor(Color.BLACK);
+        g2d.drawString(hpText, textX1 + 1, textY1 + 1);
+        g2d.setColor(new Color(255, 110, 110));
+        g2d.drawString(hpText, textX1, textY1);
+
+        // Vẽ thông số sức tấn công (màu vàng kim)
+        int textX2 = x - w2 / 2;
+        g2d.setColor(Color.BLACK);
+        g2d.drawString(atkText, textX2 + 1, textY2 + 1);
+        g2d.setColor(new Color(255, 220, 80));
+        g2d.drawString(atkText, textX2, textY2);
+
+        if (prevAA != null)
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, prevAA);
     }
 
     @Override
@@ -133,10 +191,10 @@ public class PlayerSelection extends State implements Statemethods {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_LEFT)
-            deltaIndex(1);
-        else if(e.getKeyCode() == KeyEvent.VK_RIGHT)
+        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A)
             deltaIndex(-1);
+        else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_D)
+            deltaIndex(1);
         else if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
             Gamestate.state = Gamestate.MENU;
     }
